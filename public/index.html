@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ComfyCalendar 2027</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sky-top: #7EC8E3;
+      --sky-bottom: #B6DEF0;
+      --grass-light: #6EAE4A;
+      --grass-dark: #4E8C32;
+      --wood: #8B6B3E;
+      --wood-dark: #5E4428;
+      --text: #3E2C1A;
+      --text-muted: #6B563E;
+      --surface: rgba(255,255,255,0.93);
+      --border: rgba(139,107,62,0.25);
+      --accent: #C68B3E;
+      --accent-light: #DABA6E;
+      --taken-bg: rgba(255,255,255,0.55);
+      --taken-text: #A0937E;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: var(--grass-dark);
+    }
+
+    /* ── Scene background ── */
+    .scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 45%, var(--grass-light) 45.1%, var(--grass-dark) 100%);
+    }
+
+    /* ── Sun ── */
+    .sun {
+      position: absolute;
+      top: 6%;
+      right: 12%;
+      width: 70px;
+      height: 70px;
+      background: #FDE68A;
+      border-radius: 50%;
+      box-shadow: 0 0 50px 15px rgba(253,230,138,0.5), 0 0 120px 40px rgba(253,230,138,0.2);
+    }
+
+    /* ── Clouds ── */
+    .cloud {
+      position: absolute;
+      background: rgba(255,255,255,0.85);
+      border-radius: 50px;
+      animation: drift linear infinite;
+    }
+    .cloud::before, .cloud::after {
+      content: '';
+      position: absolute;
+      background: inherit;
+      border-radius: 50%;
+    }
+    .cloud::before { width: 55%; height: 130%; top: -50%; left: 18%; }
+    .cloud::after  { width: 40%; height: 110%; top: -30%; left: 52%; }
+
+    @keyframes drift {
+      from { transform: translateX(-200px); }
+      to   { transform: translateX(calc(100vw + 200px)); }
+    }
+
+    /* ── Hills ── */
+    .hills {
+      position: absolute;
+      width: 100%;
+      bottom: 52%;
+    }
+
+    /* ── Fence ── */
+    .fence {
+      position: absolute;
+      bottom: 45%;
+      left: 0;
+      width: 100%;
+      height: 32px;
+    }
+    .fence-post {
+      position: absolute;
+      bottom: 0;
+      width: 6px;
+      height: 32px;
+      background: var(--wood);
+      border-radius: 2px 2px 0 0;
+    }
+    .fence-rail {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--wood);
+      border-radius: 1px;
+    }
+
+    /* ── Sheep ── */
+    .sheep-wrap {
+      position: absolute;
+      transition: transform 0.3s;
+    }
+    .sheep-wrap:hover { transform: scale(1.1) translateY(-3px) !important; }
+
+    /* ── Content layer ── */
+    .content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .sign {
+      display: inline-block;
+      background: var(--wood);
+      border: 4px solid var(--wood-dark);
+      border-radius: 12px;
+      padding: 1.2rem 2.5rem 1rem;
+      box-shadow: 0 6px 24px rgba(0,0,0,.18);
+      position: relative;
+    }
+    .sign::before, .sign::after {
+      content: '';
+      position: absolute;
+      bottom: -28px;
+      width: 8px;
+      height: 28px;
+      background: var(--wood-dark);
+      border-radius: 0 0 3px 3px;
+    }
+    .sign::before { left: 22%; }
+    .sign::after  { right: 22%; }
+    .sign .label {
+      font-size: 0.7rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+    }
+    .sign h1 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 400;
+      color: #FFF8EE;
+      margin-top: 0.15rem;
+    }
+
+    header .subtitle {
+      margin-top: 2.5rem;
+      color: #fff;
+      font-size: 0.9rem;
+      max-width: 440px;
+      line-height: 1.6;
+      text-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    /* ── Card area ── */
+    .card-area {
+      background: var(--surface);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.12);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+    .progress-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .progress-bar {
+      height: 6px;
+      background: #E8E0D4;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--grass-light), var(--accent));
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+
+    /* ── Banner ── */
+    .banner {
+      background: #FFF8EE;
+      border: 1.5px solid var(--accent);
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: none;
+    }
+    .banner strong { color: var(--accent); }
+    .banner .see-again {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+
+    /* ── Name grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      gap: 0.65rem;
+    }
+
+    .name-btn {
+      background: #FFFFFF;
+      border: 2px solid #E8E0D4;
+      border-radius: 12px;
+      padding: 0.85rem 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .15s, transform .15s, box-shadow .15s, background .15s;
+      line-height: 1.3;
+      position: relative;
+      overflow: hidden;
+    }
+    .name-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--grass-light), var(--accent));
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .name-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(198,139,62,.2);
+    }
+    .name-btn:hover:not(:disabled)::before { opacity: 1; }
+    .name-btn:active:not(:disabled) { transform: translateY(0); }
+    .name-btn:disabled {
+      background: var(--taken-bg);
+      border-color: transparent;
+      color: var(--taken-text);
+      cursor: default;
+    }
+    .name-btn .taken-label {
+      display: block;
+      font-size: 0.65rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-top: 0.25rem;
+      color: var(--taken-text);
+    }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(30,26,20,.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+    }
+    .modal-backdrop.visible { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #fff;
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,.22);
+      transform: scale(.94);
+      transition: transform .2s;
+    }
+    .modal-backdrop.visible .modal { transform: scale(1); }
+    .modal-sheep {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      line-height: 1;
+    }
+    .modal h2 {
+      font-family: Georgia, serif;
+      font-weight: 400;
+      font-size: 1.3rem;
+      margin-bottom: 0.4rem;
+    }
+    .modal p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .modal-name { color: var(--accent); font-weight: 700; }
+    .modal-actions { display: flex; gap: 0.65rem; }
+    .btn {
+      flex: 1;
+      padding: 0.7rem;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--grass-light); color: #fff; }
+    .btn-primary:hover { background: var(--grass-dark); }
+    .btn-secondary { background: #F0EBE3; color: var(--text-muted); }
+
+    /* ── Reveal overlay ── */
+    .reveal-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+      background: linear-gradient(180deg, #1B3A20 0%, #2D5A27 40%, #3E7A34 100%);
+    }
+    .reveal-overlay.visible { opacity: 1; pointer-events: all; }
+    .reveal-sheep-row {
+      font-size: 2rem;
+      letter-spacing: 0.5rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.6;
+    }
+    .reveal-eyebrow {
+      font-size: 0.75rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+      margin-bottom: 0.75rem;
+    }
+    .reveal-month {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: clamp(3rem, 14vw, 6.5rem);
+      font-weight: 400;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.1;
+      min-height: 1.2em;
+      transition: color .3s, text-shadow .3s;
+    }
+    .reveal-month.final {
+      color: #FEFCE8;
+      text-shadow: 0 0 40px rgba(254,252,232,0.3);
+    }
+    .reveal-sub {
+      margin-top: 1rem;
+      color: rgba(255,255,255,.5);
+      font-size: 0.95rem;
+      max-width: 340px;
+      line-height: 1.6;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .5s .1s, transform .5s .1s;
+    }
+    .reveal-sub.visible { opacity: 1; transform: translateY(0); }
+    .reveal-dismiss {
+      margin-top: 2rem;
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,.25);
+      color: rgba(255,255,255,.6);
+      border-radius: 10px;
+      padding: 0.65rem 1.5rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: border-color .15s, color .15s, opacity .3s;
+    }
+    .reveal-dismiss.visible { opacity: 1; pointer-events: all; }
+    .reveal-dismiss:hover { border-color: rgba(255,255,255,.6); color: #fff; }
+
+    /* ── Assignments overlay ── */
+    .assignments-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(30,26,20,.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+    }
+    .assignments-overlay.visible { opacity: 1; pointer-events: all; }
+    .assignments-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 1.5rem 1.75rem;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 24px 64px rgba(0,0,0,.22);
+      transform: scale(.94);
+      transition: transform .2s;
+    }
+    .assignments-overlay.visible .assignments-card { transform: scale(1); }
+    .assignments-card h2 {
+      font-family: Georgia, serif;
+      font-weight: 400;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .assignments-list {
+      list-style: none;
+      padding: 0;
+    }
+    .assignments-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid #F0EBE3;
+      font-size: 0.88rem;
+    }
+    .assignments-list li:last-child { border-bottom: none; }
+    .assignments-list .a-name { color: var(--text); font-weight: 500; }
+    .assignments-list .a-month { color: var(--accent); font-weight: 600; }
+    .assignments-list .a-pending { color: var(--taken-text); font-style: italic; }
+    .assignments-close {
+      display: block;
+      margin: 1rem auto 0;
+      background: #F0EBE3;
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .assignments-close:hover { background: #E8E0D4; }
+    .peek-btn {
+      background: #4A90D9;
+      border: 2px solid #3A7BC8;
+      border-radius: 12px;
+      padding: 0.85rem 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.3;
+      transition: background .15s, transform .15s, box-shadow .15s;
+    }
+    .peek-btn:hover {
+      background: #3A7BC8;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(74,144,217,.3);
+    }
+    .peek-btn:active { transform: translateY(0); }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, #e8e0d4 25%, #f0ebe3 50%, #e8e0d4 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 12px;
+      height: 62px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 500px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .sign { padding: 1rem 1.5rem 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Background scene ── -->
+  <div class="scene" id="scene">
+    <div class="sun"></div>
+    <!-- clouds injected by JS -->
+    <svg class="hills" viewBox="0 0 1440 120" preserveAspectRatio="none">
+      <path d="M0,90 C200,20 400,80 600,40 C800,0 1000,70 1200,30 C1350,5 1440,50 1440,50 L1440,120 L0,120Z" fill="rgba(78,140,50,0.4)"/>
+      <path d="M0,70 C180,110 350,50 550,80 C750,110 950,40 1150,75 C1300,95 1440,60 1440,60 L1440,120 L0,120Z" fill="rgba(110,174,74,0.5)"/>
+    </svg>
+    <!-- fence -->
+    <div class="fence" id="fence"></div>
+    <!-- sheep injected by JS -->
+  </div>
+
+  <!-- ── Main content ── -->
+  <div class="content">
+    <header>
+      <div class="sign">
+        <div class="label">ComfyCalendar</div>
+        <h1>2027</h1>
+      </div>
+      <p class="subtitle">Найди себя и получи свой месяц.<br>Каждый оформляет свой один месяц, декабрь - совместная фотка!</p>
+    </header>
+
+    <div class="card-area">
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-label">
+          <span id="progress-text">0 из 11 распределено</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="banner" id="banner">
+        С возвращением, <strong id="banner-name"></strong>! Твой месяц уже выбран.
+        <button class="see-again" id="see-again-btn">Посмотреть ещё раз</button>
+      </div>
+
+      <div class="grid" id="grid">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        <div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation modal -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <div class="modal-sheep">&#x1F411;</div>
+      <h2>Это ты?</h2>
+      <p>Выбираешь как <span class="modal-name" id="modal-name-display"></span>.<br>Тебе будет случайно назначен месяц!</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancel-btn">Не-а</button>
+        <button class="btn btn-primary" id="confirm-btn">Бе-е, это я!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reveal overlay -->
+  <div class="reveal-overlay" id="reveal">
+    <div class="reveal-sheep-row">&#x1F411; &#x1F411; &#x1F411;</div>
+    <div class="reveal-eyebrow">Твой месяц в ComfyCalendar 2027</div>
+    <div class="reveal-month" id="reveal-month">&mdash;</div>
+    <div class="reveal-sub" id="reveal-sub"></div>
+    <button class="reveal-dismiss" id="reveal-dismiss">Понятно, закрыть</button>
+  </div>
+
+  <!-- Assignments overlay -->
+  <div class="assignments-overlay" id="assignments-overlay">
+    <div class="assignments-card">
+      <h2>Кому что досталось</h2>
+      <ul class="assignments-list" id="assignments-list"></ul>
+      <button class="assignments-close" id="assignments-close">Закрыть</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Build the scene ──────────────────────────────────────────────
+    (function buildScene() {
+      const scene = document.getElementById('scene');
+
+      // Clouds
+      const cloudConfigs = [
+        { w: 110, h: 34, top: '8%',  delay: 0,  dur: 48 },
+        { w: 80,  h: 26, top: '14%', delay: 14, dur: 62 },
+        { w: 130, h: 38, top: '5%',  delay: 28, dur: 55 },
+        { w: 70,  h: 22, top: '18%', delay: 7,  dur: 70 },
+        { w: 100, h: 30, top: '11%', delay: 38, dur: 52 },
+      ];
+      cloudConfigs.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'cloud';
+        el.style.cssText = `width:${c.w}px;height:${c.h}px;top:${c.top};animation-duration:${c.dur}s;animation-delay:-${c.delay}s;`;
+        scene.appendChild(el);
+      });
+
+      // Fence posts
+      const fence = document.getElementById('fence');
+      for (let x = 0; x < 100; x += 4) {
+        const post = document.createElement('div');
+        post.className = 'fence-post';
+        post.style.left = x + '%';
+        fence.appendChild(post);
+      }
+      const r1 = document.createElement('div');
+      r1.className = 'fence-rail';
+      r1.style.top = '6px';
+      fence.appendChild(r1);
+      const r2 = document.createElement('div');
+      r2.className = 'fence-rail';
+      r2.style.top = '18px';
+      fence.appendChild(r2);
+
+      // Sheep SVG template
+      function makeSheep(size, flip) {
+        const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        s.setAttribute('viewBox', '0 -10 64 62');
+        s.setAttribute('width', size);
+        s.setAttribute('height', size * 62 / 64);
+        if (flip) s.style.transform = 'scaleX(-1)';
+
+        s.innerHTML = `
+          <circle cx="24" cy="23" r="12" fill="#FEFCF7"/>
+          <circle cx="18" cy="27" r="9"  fill="#FEFCF7"/>
+          <circle cx="32" cy="26" r="10" fill="#FEFCF7"/>
+          <circle cx="26" cy="18" r="8"  fill="#FEFCF7"/>
+          <circle cx="16" cy="21" r="8"  fill="#FEFCF7"/>
+          <circle cx="33" cy="19" r="7"  fill="#FEFCF7"/>
+          <circle cx="12" cy="25" r="6"  fill="#F5F0E8"/>
+          <circle cx="36" cy="24" r="6"  fill="#F5F0E8"/>
+          <ellipse cx="42" cy="20" rx="6.5" ry="8" fill="#4A4A4A"/>
+          <circle cx="44" cy="18" r="1.6" fill="#FFF"/>
+          <circle cx="44.5" cy="17.8" r="0.7" fill="#222"/>
+          <ellipse cx="38" cy="13" rx="3" ry="5" fill="#4A4A4A" transform="rotate(-10 38 13)"/>
+          <rect x="16" y="34" width="3.5" height="12" rx="1.75" fill="#4A4A4A"/>
+          <rect x="23" y="35" width="3.5" height="12" rx="1.75" fill="#4A4A4A"/>
+          <rect x="30" y="35" width="3.5" height="11" rx="1.75" fill="#4A4A4A"/>
+          <rect x="36" y="34" width="3.5" height="11" rx="1.75" fill="#4A4A4A"/>
+          <polygon points="35,14 44,-6 51,14" fill="#CC2222"/>
+          <ellipse cx="43" cy="14" rx="9" ry="2.5" fill="#FFF"/>
+          <circle cx="44" cy="-5" r="2.8" fill="#FFF"/>
+        `;
+        return s;
+      }
+
+      // Scatter sheep across the grass area (bottom 50% of the scene)
+      const sheepCount = 36;
+      for (let i = 0; i < sheepCount; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'sheep-wrap';
+
+        const size = 36 + Math.random() * 40;                // 36 – 76 px wide
+        const left = Math.random() * 96;                      // 0% – 96%
+        const top  = 52 + Math.random() * 42;                 // 52% – 94%  (grass area)
+        const flip = Math.random() > 0.5;
+
+        wrap.style.cssText = `left:${left}%;top:${top}%;width:${size}px;`;
+        // sheep lower on screen (further) are smaller, to create depth
+        const depthScale = 0.55 + ((top - 52) / 42) * 0.45;
+        wrap.style.transform = `scale(${depthScale.toFixed(2)})`;
+        wrap.style.zIndex = Math.round(top);
+
+        wrap.appendChild(makeSheep(size, flip));
+        scene.appendChild(wrap);
+      }
+    })();
+
+    // ── App logic (unchanged) ────────────────────────────────────────
+    const STORAGE_KEY = 'comfy-calendar-2027';
+    let pendingName = null;
+
+    const grid = document.getElementById('grid');
+    const modal = document.getElementById('modal');
+    const modalNameDisplay = document.getElementById('modal-name-display');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const confirmBtn = document.getElementById('confirm-btn');
+    const reveal = document.getElementById('reveal');
+    const revealMonth = document.getElementById('reveal-month');
+    const revealSub = document.getElementById('reveal-sub');
+    const revealDismiss = document.getElementById('reveal-dismiss');
+    const banner = document.getElementById('banner');
+    const bannerName = document.getElementById('banner-name');
+    const seeAgainBtn = document.getElementById('see-again-btn');
+    const progressWrap = document.getElementById('progress-wrap');
+    const progressText = document.getElementById('progress-text');
+    const progressPct = document.getElementById('progress-pct');
+    const progressFill = document.getElementById('progress-fill');
+
+    function getSaved() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
+    }
+    function setSaved(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    async function loadState() {
+      const res = await fetch('/api/state');
+      const { names } = await res.json();
+      renderGrid(names);
+      updateProgress(names);
+
+      const saved = getSaved();
+      const confirmedOnServer = saved && names.find(n => n.name === saved.name && n.assigned);
+      if (saved && confirmedOnServer) {
+        bannerName.textContent = saved.name;
+        banner.style.display = 'block';
+        seeAgainBtn.onclick = () => showReveal(saved.month, saved.name, true);
+      } else if (saved && !confirmedOnServer) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      progressWrap.style.display = 'block';
+    }
+
+    function updateProgress(names) {
+      const assigned = names.filter(n => n.assigned).length;
+      const total = names.length;
+      const pct = Math.round((assigned / total) * 100);
+      progressText.textContent = `${assigned} из ${total} распределено`;
+      progressPct.textContent = `${pct}%`;
+      progressFill.style.width = `${pct}%`;
+    }
+
+    function renderGrid(names) {
+      grid.innerHTML = '';
+      names.forEach(({ name, assigned }) => {
+        const btn = document.createElement('button');
+        btn.className = 'name-btn';
+        btn.disabled = assigned;
+        if (assigned) {
+          btn.innerHTML = `${esc(name)}<span class="taken-label">занято</span>`;
+        } else {
+          btn.textContent = name;
+          btn.addEventListener('click', () => openModal(name));
+        }
+        grid.appendChild(btn);
+      });
+
+      // 12th button — peek at all assignments
+      const peekBtn = document.createElement('button');
+      peekBtn.className = 'peek-btn';
+      peekBtn.textContent = 'Кому что досталось';
+      peekBtn.addEventListener('click', showAssignments);
+      grid.appendChild(peekBtn);
+    }
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function openModal(name) {
+      pendingName = name;
+      modalNameDisplay.textContent = name;
+      modal.classList.add('visible');
+    }
+    function closeModal() {
+      modal.classList.remove('visible');
+      pendingName = null;
+    }
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    confirmBtn.addEventListener('click', async () => {
+      if (!pendingName) return;
+      const name = pendingName;
+      closeModal();
+      await assign(name);
+    });
+
+    async function assign(name) {
+      const res = await fetch('/api/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        alert(error || 'Что-то пошло не так.');
+        return;
+      }
+      const { month, alreadyAssigned } = await res.json();
+      setSaved({ name, month });
+      await showReveal(month, name, alreadyAssigned);
+      loadState();
+    }
+
+    const ALL_MONTHS = [
+      'Январь','Февраль','Март','Апрель','Май','Июнь',
+      'Июль','Август','Сентябрь','Октябрь','Ноябрь',
+    ];
+
+    async function showReveal(finalMonth, name, skipAnimation) {
+      revealMonth.className = 'reveal-month';
+      revealSub.className = 'reveal-sub';
+      revealDismiss.className = 'reveal-dismiss';
+      revealSub.textContent = '';
+      reveal.classList.add('visible');
+
+      if (skipAnimation) {
+        revealMonth.textContent = finalMonth;
+        revealMonth.classList.add('final');
+      } else {
+        await spinTo(finalMonth);
+      }
+
+      revealSub.textContent = `${name}, ты оформляешь ${finalMonth} 2027 — сделай его незабываемым!`;
+      revealSub.classList.add('visible');
+      setTimeout(() => revealDismiss.classList.add('visible'), 400);
+    }
+
+    function spinTo(finalMonth) {
+      return new Promise(resolve => {
+        const total = 28;
+        let count = 0;
+        function getDelay(n) {
+          if (n < 12) return 55;
+          if (n < 20) return 100;
+          if (n < 25) return 190;
+          return 320;
+        }
+        function tick() {
+          if (count < total) {
+            revealMonth.textContent = ALL_MONTHS[Math.floor(Math.random() * ALL_MONTHS.length)];
+            count++;
+            setTimeout(tick, getDelay(count));
+          } else {
+            revealMonth.textContent = finalMonth;
+            revealMonth.classList.add('final');
+            resolve();
+          }
+        }
+        tick();
+      });
+    }
+
+    revealDismiss.addEventListener('click', () => { reveal.classList.remove('visible'); });
+
+    // ── Assignments overlay ────────────────────────────────────────
+    const assignmentsOverlay = document.getElementById('assignments-overlay');
+    const assignmentsList = document.getElementById('assignments-list');
+    const assignmentsClose = document.getElementById('assignments-close');
+
+    async function showAssignments() {
+      const saved = getSaved();
+      if (!saved) {
+        alert('Сначала получи свой месяц!');
+        return;
+      }
+      const res = await fetch(`/api/assignments?name=${encodeURIComponent(saved.name)}`);
+      if (!res.ok) {
+        alert('Сначала получи свой месяц!');
+        return;
+      }
+      const { assignments } = await res.json();
+
+      assignmentsList.innerHTML = '';
+      assignments.forEach(({ name, month }) => {
+        const li = document.createElement('li');
+        li.innerHTML = month
+          ? `<span class="a-name">${esc(name)}</span><span class="a-month">${esc(month)}</span>`
+          : `<span class="a-name">${esc(name)}</span><span class="a-pending">ещё не выбрал(а)</span>`;
+        assignmentsList.appendChild(li);
+      });
+
+      assignmentsOverlay.classList.add('visible');
+    }
+
+    assignmentsClose.addEventListener('click', () => assignmentsOverlay.classList.remove('visible'));
+    assignmentsOverlay.addEventListener('click', e => { if (e.target === assignmentsOverlay) assignmentsOverlay.classList.remove('visible'); });
+
+    loadState();
+  </script>
+</body>
+</html>

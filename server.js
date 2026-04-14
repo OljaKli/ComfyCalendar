@@ -26,15 +26,28 @@ const MONTHS = [
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь',
 ];
 
+// Confirmed assignments — hardcoded so they survive Render restarts
+const CONFIRMED = {
+  'Nastirka': 'Ноябрь',
+  'Max': 'Февраль',
+  'Sasha': 'Март',
+  'Marina (hates double standards)': 'Июль',
+  'Olja (renaissance person)': 'Август',
+  'Ivanchei': 'Май',
+};
+
 function loadState() {
+  let state = { assignments: {} };
   try {
     if (fs.existsSync(DATA_FILE)) {
-      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+      state = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     }
   } catch (e) {
     console.error('Failed to load state:', e.message);
   }
-  return { assignments: {} };
+  // Merge hardcoded assignments (they always win)
+  state.assignments = { ...state.assignments, ...CONFIRMED };
+  return state;
 }
 
 function saveState(state) {

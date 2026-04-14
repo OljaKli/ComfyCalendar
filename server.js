@@ -9,7 +9,7 @@ const DATA_FILE = path.join(__dirname, 'data', 'state.json');
 
 const NAMES = [
   'Nastirka',
-  'Majja',
+  'Majja (not a bee)',
   'Max',
   'Sasha',
   'Denis',

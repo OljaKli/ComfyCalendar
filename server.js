@@ -34,6 +34,7 @@ const CONFIRMED = {
   'Marina (hates double standards)': 'Июль',
   'Olja (renaissance person)': 'Август',
   'Ivanchei': 'Май',
+  'Marina Shamarina': 'Сентябрь',
 };
 
 function loadState() {

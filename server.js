@@ -35,6 +35,7 @@ const CONFIRMED = {
   'Olja (renaissance person)': 'Август',
   'Ivanchei': 'Май',
   'Marina Shamarina': 'Сентябрь',
+  'Majja (not a bee)': 'Октябрь',
 };
 
 function loadState() {
